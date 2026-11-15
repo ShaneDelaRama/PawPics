@@ -1,6 +1,7 @@
 
 package com.example.pawpics.ui
 
+import androidx.compose.material3.ButtonDefaults
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -287,10 +288,12 @@ fun HomeScreen() {
                         onClick = {
                             photoPicker.launch("image/*")
                         },
-
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF92705F),
+                            contentColor = Color(0xFFFFF9F5)
+                        )
                     ) {
-
                         Text(
                             text = "+ Add Today's Photo",
                             fontWeight = FontWeight.SemiBold

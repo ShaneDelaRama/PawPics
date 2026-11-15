@@ -1,6 +1,7 @@
 
 package com.example.pawpics.ui
 
+import androidx.compose.foundation.layout.aspectRatio
 import android.widget.ImageView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -200,7 +201,7 @@ fun CalendarView(
                             Spacer(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(72.dp)
+                                    .aspectRatio(1f)
                             )
 
                         } else {
@@ -222,7 +223,7 @@ fun CalendarView(
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(72.dp)
+                                    .aspectRatio(1f)
                                     .clip(RoundedCornerShape(9.dp))
                                     .background(
                                         if (todayCell) {
