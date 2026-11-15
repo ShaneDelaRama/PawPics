@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -220,6 +219,7 @@ fun CalendarView(
                                 day
                             )
 
+
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
@@ -238,70 +238,50 @@ fun CalendarView(
                             ) {
 
                                 // DISPLAY SAVED PHOTO
-
                                 if (entry != null) {
 
                                     AndroidView(
                                         modifier = Modifier.fillMaxSize(),
 
                                         factory = { context ->
-
                                             ImageView(context).apply {
-                                                scaleType =
-                                                    ImageView.ScaleType.CENTER_CROP
+                                                scaleType = ImageView.ScaleType.CENTER_CROP
                                             }
                                         },
 
                                         update = { imageView ->
-
-                                            imageView.setImageURI(
-                                                entry.photoUri
-                                            )
+                                            imageView.setImageURI(entry.photoUri)
                                         }
-                                    )
-
-                                } else {
-
-                                    Text(
-                                        text = "+",
-
-                                        modifier = Modifier.align(
-                                            Alignment.Center
-                                        ),
-
-                                        fontSize = 18.sp,
-                                        color = Color(0xFFB69A88)
                                     )
                                 }
 
-                                // DATE OVERLAY
-
+                                // DATE NUMBER - CENTERED, NO BACKGROUND
                                 Text(
                                     text = day.toString(),
-                                    modifier = Modifier
-                                        .align(Alignment.TopStart)
-                                        .padding(3.dp)
-                                        .background(
-                                            color = Color(0xFFFFF9F5),
-                                            shape = RoundedCornerShape(5.dp)
-                                        )
-                                        .padding(horizontal = 5.dp, vertical = 2.dp),
-                                    fontSize = 10.sp,
+
+                                    modifier = Modifier.align(Alignment.Center),
+
+                                    fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF604B43)
+
+                                    color = if (entry != null) {
+                                        Color(0xFFFFF9F5)
+                                    } else {
+                                        Color(0xFF604B43)
+                                    }
                                 )
                             }
+
                         }
                     }
                 }
             }
-
-            Text(
-                text = "♡ Tap a date to view its memory.",
-
-                fontSize = 12.sp,
-                color = Color(0xFF927D73)
-            )
         }
+        Text(
+            text = "♡ Tap a date to view its memory.",
+            modifier = Modifier.padding(start = 6.dp),
+            fontSize = 12.sp,
+            color = Color(0xFF927D73)
+        )
     }
 }
