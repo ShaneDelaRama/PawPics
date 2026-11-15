@@ -277,22 +277,17 @@ fun CalendarView(
 
                                 Text(
                                     text = day.toString(),
-
                                     modifier = Modifier
                                         .align(Alignment.TopStart)
                                         .padding(3.dp)
                                         .background(
-                                            Color.Black.copy(alpha = 0.5f),
-                                            RoundedCornerShape(4.dp)
+                                            color = Color(0xFFFFF9F5),
+                                            shape = RoundedCornerShape(5.dp)
                                         )
-                                        .padding(
-                                            horizontal = 4.dp,
-                                            vertical = 2.dp
-                                        ),
-
+                                        .padding(horizontal = 5.dp, vertical = 2.dp),
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White
+                                    color = Color(0xFF604B43)
                                 )
                             }
                         }
