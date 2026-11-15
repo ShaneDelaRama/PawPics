@@ -78,7 +78,7 @@ fun PhotoDetailScreen(
                         entry.dateKey
                     }
 
-                } catch (error: Exception) {
+                } catch (_: Exception) {
                     entry.dateKey
                 }
 
@@ -112,10 +112,8 @@ fun PhotoDetailScreen(
                 // PHOTO DESCRIPTION
 
                 Text(
-                    text = if (entry.caption.isBlank()) {
+                    text = entry.caption.ifBlank {
                         "No description added."
-                    } else {
-                        entry.caption
                     },
 
                     fontSize = 16.sp,
