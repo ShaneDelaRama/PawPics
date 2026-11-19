@@ -1,7 +1,6 @@
 
 package com.example.pawpics.ui
 
-import androidx.compose.material3.ButtonDefaults
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -15,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -27,23 +27,61 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.pawpics.data.DiaryEntry
+import com.example.pawpics.data.DiaryRepository
+import com.example.pawpics.utils.DateUtils
+import java.io.File
+import java.io.FileOutputStream
 import java.util.Calendar
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun HomeScreen() {
 
     val context = LocalContext.current
+    val repository = remember(context) {
+        DiaryRepository(context)
+    }
 
-    // Temporary frontend diary entries.
+    val scope = rememberCoroutineScope()
+
+    // Diary entries displayed in the calendar.
     val entries = remember {
         mutableStateMapOf<String, UiDiaryEntry>()
     }
 
+    // Load saved entries from SQLite.
+    LaunchedEffect(repository) {
+
+        val savedEntries = withContext(Dispatchers.IO) {
+            repository.getAllEntries()
+        }
+
+        entries.clear()
+
+        savedEntries.forEach { savedEntry ->
+
+            val photoFile = File(savedEntry.photoPath)
+
+            if (photoFile.exists()) {
+                entries[savedEntry.dateKey] = UiDiaryEntry(
+                    dateKey = savedEntry.dateKey,
+                    photoUri = Uri.fromFile(photoFile),
+                    caption = savedEntry.caption
+                )
+            }
+        }
+    }
+
     // Currently displayed month.
     var displayedMonth by remember {
-        mutableStateOf(Calendar.getInstance().apply {
-            set(Calendar.DAY_OF_MONTH, 1)
-        })
+        mutableStateOf(
+            Calendar.getInstance().apply {
+                set(Calendar.DAY_OF_MONTH, 1)
+            }
+        )
     }
 
     // Selected photograph.
@@ -77,7 +115,6 @@ fun HomeScreen() {
 
         AddPhotoScreen(
             photoUri = selectedPhotoUri!!,
-
             caption = caption,
 
             onCaptionChange = { newCaption ->
@@ -86,26 +123,84 @@ fun HomeScreen() {
 
             onSave = {
 
-                val todayKey = uiDateKey(Calendar.getInstance())
-
+                val todayKey = DateUtils.getDateKey()
                 val photoUri = selectedPhotoUri
 
                 if (photoUri != null) {
 
-                    entries[todayKey] = UiDiaryEntry(
-                        dateKey = todayKey,
-                        photoUri = photoUri,
-                        caption = caption.trim()
-                    )
+                    scope.launch {
 
-                    selectedPhotoUri = null
-                    caption = ""
+                        try {
 
-                    Toast.makeText(
-                        context,
-                        "Photo added to PawPics!",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                            // Copy the selected photo into app storage.
+                            val savedPath = withContext(Dispatchers.IO) {
+
+                                val photoDirectory = File(
+                                    context.filesDir,
+                                    "diary_photos"
+                                )
+
+                                if (!photoDirectory.exists()) {
+                                    photoDirectory.mkdirs()
+                                }
+
+                                val photoFile = File(
+                                    photoDirectory,
+                                    "$todayKey.photo"
+                                )
+
+                                val inputStream =
+                                    context.contentResolver.openInputStream(photoUri)
+                                        ?: throw Exception("Unable to open photo.")
+
+                                inputStream.use { input ->
+
+                                    FileOutputStream(photoFile).use { output ->
+                                        input.copyTo(output)
+                                    }
+                                }
+
+                                // Save the entry in SQLite.
+                                val result = repository.saveEntry(
+                                    DiaryEntry(
+                                        dateKey = todayKey,
+                                        photoPath = photoFile.absolutePath,
+                                        caption = caption.trim()
+                                    )
+                                )
+
+                                if (result == -1L) {
+                                    throw Exception("Unable to save diary entry.")
+                                }
+
+                                photoFile.absolutePath
+                            }
+
+                            // Update the calendar display.
+                            entries[todayKey] = UiDiaryEntry(
+                                dateKey = todayKey,
+                                photoUri = Uri.fromFile(File(savedPath)),
+                                caption = caption.trim()
+                            )
+
+                            selectedPhotoUri = null
+                            caption = ""
+
+                            Toast.makeText(
+                                context,
+                                "Photo added to PawPics!",
+                                Toast.LENGTH_SHORT
+                            ).show()
+
+                        } catch (e: Exception) {
+
+                            Toast.makeText(
+                                context,
+                                "Unable to save photo: ${e.message}",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
                 }
             },
 
@@ -118,7 +213,6 @@ fun HomeScreen() {
     } else {
 
         // HOMEPAGE
-
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = Color(0xFFFFF9F5)
@@ -134,14 +228,12 @@ fun HomeScreen() {
             ) {
 
                 // PAWPICS TITLE
-
                 Column(
                     verticalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
 
                     Text(
                         text = "🐾 PawPics",
-
                         fontSize = 30.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF604B43)
@@ -149,21 +241,18 @@ fun HomeScreen() {
 
                     Text(
                         text = "Your pet's daily memories.",
-
                         fontSize = 14.sp,
                         color = Color(0xFF927D73)
                     )
                 }
 
                 // GREETING
-
                 Column(
                     verticalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
 
                     Text(
                         text = "Hello, pet parent! ♡",
-
                         fontSize = 23.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF604B43)
@@ -171,25 +260,20 @@ fun HomeScreen() {
 
                     Text(
                         text = "Every day is a memory worth keeping.",
-
                         fontSize = 14.sp,
                         color = Color(0xFF806E65)
                     )
                 }
 
                 // MONTH NAVIGATION
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-
                     horizontalArrangement = Arrangement.SpaceBetween,
-
                     verticalAlignment = Alignment.CenterVertically
                 ) {
 
                     Text(
                         text = uiMonthTitle(displayedMonth),
-
                         fontSize = 21.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF604B43)
@@ -199,14 +283,12 @@ fun HomeScreen() {
 
                         TextButton(
                             onClick = {
-
                                 displayedMonth =
                                     (displayedMonth.clone() as Calendar).apply {
                                         add(Calendar.MONTH, -1)
                                     }
                             }
                         ) {
-
                             Text(
                                 text = "‹",
                                 fontSize = 27.sp
@@ -215,14 +297,12 @@ fun HomeScreen() {
 
                         TextButton(
                             onClick = {
-
                                 displayedMonth =
                                     (displayedMonth.clone() as Calendar).apply {
                                         add(Calendar.MONTH, 1)
                                     }
                             }
                         ) {
-
                             Text(
                                 text = "›",
                                 fontSize = 27.sp
@@ -232,20 +312,15 @@ fun HomeScreen() {
                 }
 
                 // MONTHLY PHOTO CALENDAR
-
                 CalendarView(
                     displayedMonth = displayedMonth,
-
                     entries = entries,
 
                     onDateClick = { dateKey ->
 
                         if (entries.containsKey(dateKey)) {
-
                             selectedDate = dateKey
-
                         } else {
-
                             Toast.makeText(
                                 context,
                                 "No photo saved on this date.",
@@ -256,14 +331,12 @@ fun HomeScreen() {
                 )
 
                 // ADD PHOTO SECTION
-
                 Column(
                     verticalArrangement = Arrangement.spacedBy(9.dp)
                 ) {
 
                     Text(
                         text = "TODAY'S MEMORY",
-
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF92705F)
@@ -271,14 +344,12 @@ fun HomeScreen() {
 
                     Text(
                         text = uiTodayLabel(),
-
                         fontSize = 16.sp,
                         color = Color(0xFF604B43)
                     )
 
                     Text(
                         text = "Capture today's little moments!",
-
                         fontSize = 19.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF604B43)
@@ -288,7 +359,9 @@ fun HomeScreen() {
                         onClick = {
                             photoPicker.launch("image/*")
                         },
+
                         modifier = Modifier.fillMaxWidth(),
+
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF92705F),
                             contentColor = Color(0xFFFFF9F5)
@@ -302,14 +375,10 @@ fun HomeScreen() {
                 }
 
                 // FOOTER
-
                 Text(
                     text = "Made with ♡ for your furry friends.",
-
                     modifier = Modifier.fillMaxWidth(),
-
                     textAlign = TextAlign.Center,
-
                     fontSize = 12.sp,
                     color = Color(0xFFA18D83)
                 )
@@ -318,7 +387,6 @@ fun HomeScreen() {
     }
 
     // PHOTO DETAIL DIALOG
-
     val entry: UiDiaryEntry? = if (selectedDate != null) {
         entries[selectedDate!!]
     } else {
@@ -336,14 +404,26 @@ fun HomeScreen() {
 
             onDelete = {
 
-                entries.remove(entry.dateKey)
-                selectedDate = null
+                scope.launch {
 
-                Toast.makeText(
-                    context,
-                    "Photo removed.",
-                    Toast.LENGTH_SHORT
-                ).show()
+                    withContext(Dispatchers.IO) {
+
+                        repository.deleteEntry(entry.dateKey)
+
+                        entry.photoUri.path?.let { path ->
+                            File(path).delete()
+                        }
+                    }
+
+                    entries.remove(entry.dateKey)
+                    selectedDate = null
+
+                    Toast.makeText(
+                        context,
+                        "Photo removed.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
         )
     }

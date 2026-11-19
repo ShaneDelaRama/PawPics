@@ -1,4 +1,3 @@
-
 package com.example.pawpics.data
 
 import android.content.ContentValues

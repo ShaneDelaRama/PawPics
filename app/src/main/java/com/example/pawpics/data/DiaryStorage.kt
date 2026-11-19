@@ -18,18 +18,20 @@ class DiaryStorage(context: Context) :
         const val COLUMN_CAPTION = "caption"
     }
 
+
     override fun onCreate(db: SQLiteDatabase) {
         val createTable = """
-            CREATE TABLE $TABLE_DIARY (
-                $COLUMN_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-                $COLUMN_DATE TEXT NOT NULL,
-                $COLUMN_PHOTO TEXT NOT NULL,
-                $COLUMN_CAPTION TEXT
-            )
-        """.trimIndent()
+        CREATE TABLE $TABLE_DIARY (
+            $COLUMN_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+            $COLUMN_DATE TEXT NOT NULL UNIQUE,
+            $COLUMN_PHOTO TEXT NOT NULL,
+            $COLUMN_CAPTION TEXT
+        )
+    """.trimIndent()
 
         db.execSQL(createTable)
     }
+
 
     override fun onUpgrade(
         db: SQLiteDatabase,
