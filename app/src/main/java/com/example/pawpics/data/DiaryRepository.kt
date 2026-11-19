@@ -1,3 +1,4 @@
+
 package com.example.pawpics.data
 
 import android.content.ContentValues
@@ -9,14 +10,42 @@ class DiaryRepository(context: Context) {
 
     //CRUD FUNCTIONS
     //CREATE
-    fun insertEntry(entry: DiaryEntry): Long {
+    fun saveEntry(entry: DiaryEntry): Long {
         val db = diaryStorage.writableDatabase
+
         val values = ContentValues().apply {
             put(DiaryStorage.COLUMN_DATE, entry.dateKey)
             put(DiaryStorage.COLUMN_PHOTO, entry.photoPath)
             put(DiaryStorage.COLUMN_CAPTION, entry.caption)
         }
-        return db.insert(DiaryStorage.TABLE_DIARY, null, values)
+
+        val cursor = db.query(
+            DiaryStorage.TABLE_DIARY,
+            arrayOf(DiaryStorage.COLUMN_ID),
+            "${DiaryStorage.COLUMN_DATE} = ?",
+            arrayOf(entry.dateKey),
+            null,
+            null,
+            null
+        )
+
+        cursor.use {
+            if (it.moveToFirst()) {
+                // An entry already exists for this date.
+                return db.update(
+                    DiaryStorage.TABLE_DIARY,
+                    values,
+                    "${DiaryStorage.COLUMN_DATE} = ?",
+                    arrayOf(entry.dateKey)
+                ).toLong()
+            }
+        }
+        //for no entry
+        return db.insert(
+            DiaryStorage.TABLE_DIARY,
+            null,
+            values
+        )
     }
 
     //READ
@@ -31,25 +60,23 @@ class DiaryRepository(context: Context) {
             null,
             null,
             null,
-            "${DiaryStorage.COLUMN_ID} DESC"
+            "${DiaryStorage.COLUMN_DATE} DESC"
         )
 
         cursor.use {
             while (it.moveToNext()) {
-                val dateKey = it.getString(
-                    it.getColumnIndexOrThrow(DiaryStorage.COLUMN_DATE)
-                )
-
-                val photoPath = it.getString(
-                    it.getColumnIndexOrThrow(DiaryStorage.COLUMN_PHOTO)
-                )
-
-                val caption = it.getString(
-                    it.getColumnIndexOrThrow(DiaryStorage.COLUMN_CAPTION)
-                ) ?: ""
-
                 entries.add(
-                    DiaryEntry(dateKey, photoPath, caption)
+                    DiaryEntry(
+                        dateKey = it.getString(
+                            it.getColumnIndexOrThrow(DiaryStorage.COLUMN_DATE)
+                        ),
+                        photoPath = it.getString(
+                            it.getColumnIndexOrThrow(DiaryStorage.COLUMN_PHOTO)
+                        ),
+                        caption = it.getString(
+                            it.getColumnIndexOrThrow(DiaryStorage.COLUMN_CAPTION)
+                        ) ?: ""
+                    )
                 )
             }
         }
@@ -57,32 +84,21 @@ class DiaryRepository(context: Context) {
         return entries
     }
 
-    //UPDATE
-    fun updateEntry(id: Long, entry: DiaryEntry): Int {
-        val db = diaryStorage.writableDatabase
-
-        val values = ContentValues().apply {
-            put(DiaryStorage.COLUMN_DATE, entry.dateKey)
-            put(DiaryStorage.COLUMN_PHOTO, entry.photoPath)
-            put(DiaryStorage.COLUMN_CAPTION, entry.caption)
+    //READ
+    fun getEntryByDate(dateKey: String): DiaryEntry? {
+        return getAllEntries().firstOrNull {
+            it.dateKey == dateKey
         }
-
-        return db.update(
-            DiaryStorage.TABLE_DIARY,
-            values,
-            "${DiaryStorage.COLUMN_ID} = ?",
-            arrayOf(id.toString())
-        )
     }
 
     //DELETE
-    fun deleteEntry(id: Long): Int {
+    fun deleteEntry(dateKey: String): Int {
         val db = diaryStorage.writableDatabase
 
         return db.delete(
             DiaryStorage.TABLE_DIARY,
-            "${DiaryStorage.COLUMN_ID} = ?",
-            arrayOf(id.toString())
+            "${DiaryStorage.COLUMN_DATE} = ?",
+            arrayOf(dateKey)
         )
     }
 
